@@ -1,4 +1,4 @@
-use super::{component_storage::ComponentStorage, entity::Entity};
+use super::{component_storage::Component, component_storage::ComponentStorage, entity::Entity};
 use std::collections::{hash_map::HashMap, linked_list::LinkedList};
 
 pub struct LazyVecStorage<ComponentType> {
@@ -15,7 +15,10 @@ impl<ComponentType> LazyVecStorage<ComponentType> {
         }
     }
 }
-impl<ComponentType> ComponentStorage<ComponentType> for LazyVecStorage<ComponentType> {
+impl<ComponentType> ComponentStorage<ComponentType> for LazyVecStorage<ComponentType>
+where
+    ComponentType: Component,
+{
     fn remove_component(&mut self, entity: Entity) {
         if let Some(component_index) = self.entity_map.remove(&entity.id) {
             if component_index == self.components.len() - 1 {
@@ -47,11 +50,12 @@ impl<ComponentType> ComponentStorage<ComponentType> for LazyVecStorage<Component
 
 #[cfg(test)]
 mod tests {
-    use super::{ComponentStorage, Entity, LazyVecStorage};
+    use super::{Component, ComponentStorage, Entity, LazyVecStorage};
 
     struct TestComponent {
         id: i8,
     }
+    //impl Component for TestComponent {}
 
     #[test]
     fn component_pool() {
