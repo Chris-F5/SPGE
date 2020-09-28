@@ -1,21 +1,22 @@
-use crate::entity::Entity;
-use std::collections::hash_map::HashMap;
-use std::collections::linked_list::LinkedList;
+use super::{component_storage::ComponentStorage, entity::Entity};
+use std::collections::{hash_map::HashMap, linked_list::LinkedList};
 
-pub struct ComponentPool<ComponentType> {
+pub struct LazyVecStorage<ComponentType> {
     components: Vec<ComponentType>,
     entity_map: HashMap<usize, usize>,
     isolated_unallocated_indices: LinkedList<usize>,
 }
-impl<ComponentType> ComponentPool<ComponentType> {
-    pub fn new() -> ComponentPool<ComponentType> {
-        ComponentPool {
+impl<ComponentType> LazyVecStorage<ComponentType> {
+    fn new() -> LazyVecStorage<ComponentType> {
+        LazyVecStorage {
             components: Vec::with_capacity(16),
             entity_map: HashMap::with_capacity(16),
             isolated_unallocated_indices: LinkedList::new(),
         }
     }
-    pub fn remove_component(&mut self, entity: Entity) {
+}
+impl<ComponentType> ComponentStorage<ComponentType> for LazyVecStorage<ComponentType> {
+    fn remove_component(&mut self, entity: Entity) {
         if let Some(component_index) = self.entity_map.remove(&entity.id) {
             if component_index == self.components.len() - 1 {
                 self.components.pop();
@@ -26,7 +27,7 @@ impl<ComponentType> ComponentPool<ComponentType> {
             panic!("The entity does not have this component type attached.");
         }
     }
-    pub fn attach_component(&mut self, entity: Entity, component: ComponentType) {
+    fn attach_component(&mut self, entity: Entity, component: ComponentType) {
         if let Some(index) = self.isolated_unallocated_indices.pop_front() {
             self.entity_map.insert(entity.id, index);
             self.components[index] = component;
@@ -35,7 +36,7 @@ impl<ComponentType> ComponentPool<ComponentType> {
             self.components.push(component);
         }
     }
-    pub fn get_component(&self, entity: Entity) -> &ComponentType {
+    fn get_component(&self, entity: Entity) -> &ComponentType {
         if let Some(component_index) = self.entity_map.get(&entity.id) {
             return &self.components[*component_index];
         } else {
@@ -46,8 +47,7 @@ impl<ComponentType> ComponentPool<ComponentType> {
 
 #[cfg(test)]
 mod tests {
-    use crate::component_pool::ComponentPool;
-    use crate::entity::Entity;
+    use super::{ComponentStorage, Entity, LazyVecStorage};
 
     struct TestComponent {
         id: i8,
@@ -55,7 +55,7 @@ mod tests {
 
     #[test]
     fn component_pool() {
-        let mut pool = ComponentPool::<TestComponent>::new();
+        let mut pool = LazyVecStorage::<TestComponent>::new();
         let c1 = TestComponent { id: 1 };
         let c2 = TestComponent { id: 2 };
         let c3 = TestComponent { id: 3 };
@@ -65,6 +65,7 @@ mod tests {
 
         pool.attach_component(e1, c1);
         assert_eq!(pool.get_component(e1).id, 1);
+
         pool.attach_component(e2, c2);
         assert_eq!(pool.get_component(e1).id, 1);
         assert_eq!(pool.get_component(e2).id, 2);
