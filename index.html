@@ -6,16 +6,7 @@
   </head>
 
   <body>
-    <script type="module">
-      // Importing WASM as a JS module requires us to call an init function provided by the default export.
-      // This is planned to be changed in the future.
-      import * as spge from "./pkg/simulated_pixel_game_engine.js";
-
-      spge.default().then((module) => {
-        // The boiler plate project comes with a `greet` function that calls:
-        alert(spge.test_add_function(5,2));
-      });
-    </script>
-    <h1>Hello World</h1>
+    <h3>Examples:</h3>
+    <a href="examples/hello_world/">hello_world</a>
   </body>
 </html>
