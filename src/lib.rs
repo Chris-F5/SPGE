@@ -2,7 +2,13 @@ mod components;
 mod systems;
 
 use specs::prelude::*;
+use wasm_bindgen::prelude::*;
 
+#[wasm_bindgen]
+pub fn test_add_function(a: i32, b: i32) -> i32 {
+    a + b
+}
+/*
 fn main() {
     let mut world = World::new();
     let mut dispatcher = DispatcherBuilder::new()
@@ -15,3 +21,4 @@ fn main() {
         .build();
     dispatcher.dispatch(&mut world);
 }
+*/
