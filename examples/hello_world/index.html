@@ -4,9 +4,21 @@
     <meta charset="utf-8" />
     <title>My Wasm Project</title>
   </head>
-
+  <style>
+    body {
+      overflow: hidden; 
+      margin: 0px;
+      border: 0px;
+    }
+  </style>
   <body>
+    <canvas id="canvas" bg></canvas>
     <script type="module">
+      var canvas = document.getElementById("canvas");
+      var ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
       import init, { test_add_function } from "./../../pkg/simulated_pixel_game_engine.js";
 
       async function run() {

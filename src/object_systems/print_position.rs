@@ -1,4 +1,4 @@
-use crate::components::Position;
+use crate::object_components::Position;
 use specs::prelude::*;
 use specs::Join;
 
