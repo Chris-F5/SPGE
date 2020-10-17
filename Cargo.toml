@@ -1,5 +1,5 @@
 [package]
-name = "simulated_pixel_game_engine"
+name = "spge"
 version = "0.1.0"
 authors = ["Christopher Lang <christopher-d-lang@hotmail.com>"]
 edition = "2018"
