@@ -1,5 +1,5 @@
 use crate::components::cell_components::CellComponent;
-use crate::storage::cell_storage::CellInnerStorage;
+use crate::storage::cell_storage::InnerCellStorage;
 use crate::CHUNK_SIZE;
 
 pub struct ArrayStorage<T>
@@ -20,7 +20,7 @@ where
     }
 }
 
-impl<T> CellInnerStorage<T> for ArrayStorage<T>
+impl<T> InnerCellStorage<T> for ArrayStorage<T>
 where
     T: CellComponent,
 {

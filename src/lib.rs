@@ -5,16 +5,11 @@ pub const CHUNK_SIZE: u32 = 16;
 
 #[cfg(test)]
 mod tests {
-    use crate::components::cell_components::CellColor;
-    use crate::components::cell_components::TestComp;
-    use crate::storage::cell_storage::Join;
-    use crate::storage::cell_storage::MaskedCellStorage;
-    use crate::storage::cell_storage::ReadCellStorage;
-    use crate::storage::cell_storage::WriteCellStorage;
-    use shred::DispatcherBuilder;
-    use shred::System;
-    use shred::SystemData;
-    use shred::World;
+    use crate::components::cell_components::{CellColor, TestComp};
+    use crate::storage::cell_storage::{
+        Join, MaskedCellStorage, ReadCellStorage, WriteCellStorage,
+    };
+    use shred::{DispatcherBuilder, System, SystemData, World};
 
     #[test]
     fn it_works() {
@@ -38,7 +33,6 @@ mod tests {
             tests.insert(2, 7);
             tests.insert(10, 10);
         }
-
         {
             let colors = ReadCellStorage::<CellColor>::fetch(&world);
             match colors.get(5, 5) {
@@ -52,21 +46,26 @@ mod tests {
             .build();
         dispatcher.dispatch(&mut world);
     }
+
     struct TestSystem;
+
     impl<'a> System<'a> for TestSystem {
         type SystemData = (
             WriteCellStorage<'a, CellColor>,
-            WriteCellStorage<'a, TestComp>,
+            ReadCellStorage<'a, TestComp>,
         );
         fn run(
             &mut self,
-            (mut cell_colors, mut test_comps): (
+            (mut cell_colors, test_comps): (
                 WriteCellStorage<'a, CellColor>,
-                WriteCellStorage<'a, TestComp>,
+                ReadCellStorage<'a, TestComp>,
             ),
         ) {
-            for ((x, y), (cell_color, _)) in (&mut cell_colors, &mut test_comps).join() {
-                println!("{} {} {}", x, y, cell_color.r)
+            for ((x, y), (cell_color, _)) in (&mut cell_colors, &test_comps).join() {
+                println!(
+                    "(x: {}, y: {}) (r: {}, g: {}, b: {})",
+                    x, y, cell_color.r, cell_color.g, cell_color.b
+                )
             }
         }
     }
