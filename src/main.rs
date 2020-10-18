@@ -4,18 +4,13 @@ use crow::{
         event_loop::{ControlFlow, EventLoop},
         window::WindowBuilder,
     },
-    image::{
-        imageops::{resize, Nearest},
-        ImageBuffer, Rgba,
-    },
-    Context, DrawConfig, Texture,
+    Context,
 };
 use shred::{DispatcherBuilder, SystemData, World};
 use spge::{
     components::cell_components::{CellColor, TestComp},
     storage::cell_storage::{MaskedCellStorage, WriteCellStorage},
-    systems::DrawSystem,
-    CHUNK_SIZE,
+    systems::{DrawSystem, SandSystem},
 };
 
 fn main() -> Result<(), crow::Error> {
@@ -37,9 +32,12 @@ fn main() -> Result<(), crow::Error> {
         let mut colors = WriteCellStorage::<CellColor>::fetch(&world);
         colors.insert(5, 5);
         colors.insert(4, 1);
+        colors.insert(4, 5);
         colors.insert(10, 10);
     }
-
+    let mut game_tick_dispatcher = DispatcherBuilder::new()
+        .with(SandSystem, "sand", &[])
+        .build();
     let mut draw_dispatcher = DispatcherBuilder::new()
         .with_thread_local(DrawSystem { ctx })
         .build();
@@ -52,6 +50,7 @@ fn main() -> Result<(), crow::Error> {
                 ..
             } => *control_flow = ControlFlow::Exit,
             Event::MainEventsCleared => {
+                game_tick_dispatcher.dispatch(&mut world);
                 draw_dispatcher.dispatch(&mut world);
             }
             Event::RedrawRequested(_) => {
