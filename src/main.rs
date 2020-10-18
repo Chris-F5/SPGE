@@ -19,6 +19,11 @@ use spge::{
 };
 
 fn main() -> Result<(), crow::Error> {
+    // INIT crow window and context
+    let event_loop = EventLoop::new();
+    let window = WindowBuilder::new().with_title("SPGE Test");
+    let ctx = Context::new(window, &event_loop)?;
+
     // INIT world
     let mut world = World::empty();
 
@@ -35,25 +40,9 @@ fn main() -> Result<(), crow::Error> {
         colors.insert(10, 10);
     }
 
-    let mut dispatcher = DispatcherBuilder::new()
-        .with(DrawSystem, "test_system", &[])
+    let mut draw_dispatcher = DispatcherBuilder::new()
+        .with_thread_local(DrawSystem { ctx })
         .build();
-    dispatcher.dispatch(&mut world);
-
-    // INIT crow window and context
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().with_title("SPGE Test");
-    let mut ctx = Context::new(window, &event_loop)?;
-
-    let img = ImageBuffer::from_fn(CHUNK_SIZE, CHUNK_SIZE, |x, y| {
-        if (x + y) % 2 == 0 {
-            Rgba([0, 0, 0, 255])
-        } else {
-            Rgba([255, 255, 255, 255])
-        }
-    });
-    let img = resize(&img, CHUNK_SIZE * 10, CHUNK_SIZE * 10, Nearest);
-    let texture2 = Texture::from_image(&mut ctx, img)?;
 
     // Run crow event loop
     event_loop.run(
@@ -62,12 +51,11 @@ fn main() -> Result<(), crow::Error> {
                 event: WindowEvent::CloseRequested,
                 ..
             } => *control_flow = ControlFlow::Exit,
-            Event::MainEventsCleared => ctx.window().request_redraw(),
+            Event::MainEventsCleared => {
+                draw_dispatcher.dispatch(&mut world);
+            }
             Event::RedrawRequested(_) => {
-                let mut surface = ctx.surface();
-                ctx.clear_color(&mut surface, (0.4, 0.4, 0.8, 1.0));
-                ctx.draw(&mut surface, &texture2, (100, 150), &DrawConfig::default());
-                ctx.present(surface).unwrap();
+                // TODO: call draw dispatcher in here and somehow pass window context into it
             }
             _ => (),
         },
