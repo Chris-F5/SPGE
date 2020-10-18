@@ -4,6 +4,10 @@ use crow::{
         event_loop::{ControlFlow, EventLoop},
         window::WindowBuilder,
     },
+    image::{
+        imageops::{resize, Nearest},
+        ImageBuffer, Rgba,
+    },
     Context, DrawConfig, Texture,
 };
 use shred::{DispatcherBuilder, SystemData, World};
@@ -11,6 +15,7 @@ use spge::{
     components::cell_components::{CellColor, TestComp},
     storage::cell_storage::{MaskedCellStorage, WriteCellStorage},
     systems::DrawSystem,
+    CHUNK_SIZE,
 };
 
 fn main() -> Result<(), crow::Error> {
@@ -40,7 +45,15 @@ fn main() -> Result<(), crow::Error> {
     let window = WindowBuilder::new().with_title("SPGE Test");
     let mut ctx = Context::new(window, &event_loop)?;
 
-    let texture = Texture::load(&mut ctx, "./test_texture.png")?;
+    let img = ImageBuffer::from_fn(CHUNK_SIZE, CHUNK_SIZE, |x, y| {
+        if (x + y) % 2 == 0 {
+            Rgba([0, 0, 0, 255])
+        } else {
+            Rgba([255, 255, 255, 255])
+        }
+    });
+    let img = resize(&img, CHUNK_SIZE * 10, CHUNK_SIZE * 10, Nearest);
+    let texture2 = Texture::from_image(&mut ctx, img)?;
 
     // Run crow event loop
     event_loop.run(
@@ -53,7 +66,7 @@ fn main() -> Result<(), crow::Error> {
             Event::RedrawRequested(_) => {
                 let mut surface = ctx.surface();
                 ctx.clear_color(&mut surface, (0.4, 0.4, 0.8, 1.0));
-                ctx.draw(&mut surface, &texture, (100, 150), &DrawConfig::default());
+                ctx.draw(&mut surface, &texture2, (100, 150), &DrawConfig::default());
                 ctx.present(surface).unwrap();
             }
             _ => (),
