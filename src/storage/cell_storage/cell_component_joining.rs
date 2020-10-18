@@ -1,5 +1,5 @@
 use super::id_to_cell;
-use hibitset::{BitIter, BitSetAnd, BitSetLike};
+use hibitset::{BitSetAnd, BitSetLike};
 use tuple_utils::Split;
 
 pub trait BitSetMerger {
@@ -37,17 +37,24 @@ macro_rules! implement_tuple_bit_set_merging {
 }
 
 pub trait Join {
-    type Component;
-    type InnerStorage;
     type Mask: BitSetLike;
-    fn join(self) -> JoinIter<Self>
+    fn join(self) -> CellIter
     where
         Self: Sized,
     {
-        JoinIter::new(self)
+        let mask = self.get_mask();
+        let mut iter = mask.iter();
+        let mut ids = Vec::new();
+        loop {
+            let id = iter.next();
+            match id {
+                Some(id) => ids.push(id),
+                None => break,
+            }
+        }
+        CellIter::new(ids)
     }
-    fn open(self) -> (Self::Mask, Self::InnerStorage);
-    unsafe fn get(value: &mut Self::InnerStorage, id: u32) -> Self::Component;
+    fn get_mask(self) -> Self::Mask;
 }
 
 macro_rules! implement_tuple_joining {
@@ -56,56 +63,31 @@ macro_rules! implement_tuple_joining {
             where $($from: Join),*,
                   ($(<$from as Join>::Mask,)*): BitSetMerger,
         {
-            type Component = ($($from::Component),*,);
-            type InnerStorage = ($($from::InnerStorage),*,);
             type Mask = <($($from::Mask,)*) as BitSetMerger>::MergedSet;
             #[allow(non_snake_case)]
-            fn open(self) -> (Self::Mask, Self::InnerStorage) {
+            fn get_mask(self) -> Self::Mask {
                 let ($($from,)*) = self;
-                let ($($from,)*) = ($($from.open(),)*);
-                (
-                    ($($from.0),*,).merge(),
-                    ($($from.1),*,)
-                )
-            }
-            #[allow(non_snake_case)]
-            unsafe fn get(v: &mut Self::InnerStorage, i: u32) -> Self::Component {
-                let ($($from,)*) = v;
-                ($($from::get($from, i),)*)
+                let ($($from,)*) = ($($from.get_mask(),)*);
+                ($($from),*,).merge()
             }
         }
     }
 }
 
-pub struct JoinIter<J>
-where
-    J: Join,
-{
-    keys: BitIter<J::Mask>,
-    inner_storages: J::InnerStorage,
+pub struct CellIter {
+    ids: Vec<u32>,
 }
-impl<J> JoinIter<J>
-where
-    J: Join,
-{
-    fn new(j: J) -> Self {
-        let (keys, inner_storages) = j.open();
-        JoinIter {
-            keys: keys.iter(),
-            inner_storages: inner_storages,
-        }
+impl CellIter {
+    fn new(ids: Vec<u32>) -> Self {
+        CellIter { ids: ids }
     }
 }
 
-impl<J: Join> std::iter::Iterator for JoinIter<J> {
-    type Item = ((u32, u32), J::Component);
+impl std::iter::Iterator for CellIter {
+    type Item = (u32, u32);
 
-    fn next(&mut self) -> Option<((u32, u32), J::Component)> {
-        self.keys.next().map(|i| {
-            (id_to_cell(i), unsafe {
-                J::get(&mut self.inner_storages, i)
-            })
-        })
+    fn next(&mut self) -> Option<(u32, u32)> {
+        self.ids.pop().map(|i| id_to_cell(i))
     }
 }
 

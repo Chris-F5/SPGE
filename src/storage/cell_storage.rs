@@ -71,37 +71,9 @@ where
     C: CellComponent,
     T: Deref<Target = MaskedCellStorage<C>>,
 {
-    type Component = &'a C;
-    type InnerStorage = &'a C::Storage;
     type Mask = &'a BitSet;
-    fn open(self) -> (&'a BitSet, &'a C::Storage) {
-        (&self.data.mask, &self.data.inner)
-    }
-    unsafe fn get(inner_storage: &mut &'a C::Storage, id: u32) -> &'a C {
-        inner_storage.get(id)
-    }
-}
-
-impl<'a, T, C> Join for &'a mut CellStorage<T>
-where
-    C: CellComponent,
-    T: DerefMut<Target = MaskedCellStorage<C>>,
-{
-    type Component = &'a mut C;
-    type InnerStorage = &'a mut C::Storage;
-    type Mask = &'a BitSet;
-    fn open(self) -> (&'a BitSet, &'a mut C::Storage) {
-        self.data.open_mut()
-    }
-
-    // I got the folowing function from specs ecs and cant find a way to make it safe
-    // TODO: audit unsafe
-    unsafe fn get(inner_storage: &mut &'a mut C::Storage, id: u32) -> &'a mut C {
-        // This is horribly unsafe. Unfortunately, Rust doesn't provide a way
-        // to abstract mutable/immutable state at the moment, so we have to hack
-        // our way through it.
-        let inner_storage: *mut Self::InnerStorage = inner_storage as *mut Self::InnerStorage;
-        (*inner_storage).get_mut(id)
+    fn get_mask(self) -> &'a BitSet {
+        &self.data.mask
     }
 }
 
@@ -111,15 +83,6 @@ where
 {
     mask: BitSet,
     inner: T::Storage,
-}
-
-impl<T> MaskedCellStorage<T>
-where
-    T: CellComponent,
-{
-    fn open_mut(&mut self) -> (&BitSet, &mut T::Storage) {
-        (&self.mask, &mut self.inner)
-    }
 }
 
 impl<T> Default for MaskedCellStorage<T>
