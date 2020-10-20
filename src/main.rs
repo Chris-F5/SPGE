@@ -1,11 +1,3 @@
-use crow::{
-    glutin::{
-        event::{Event, WindowEvent},
-        event_loop::{ControlFlow, EventLoop},
-        window::WindowBuilder,
-    },
-    Context,
-};
 use shred::{DispatcherBuilder, SystemData, World};
 use spge::{
     components::cell_components::{CellColor, TestComp},
@@ -13,12 +5,7 @@ use spge::{
     systems::{DrawSystem, SandSystem},
 };
 
-fn main() -> Result<(), crow::Error> {
-    // INIT crow window and context
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().with_title("SPGE Test");
-    let ctx = Context::new(window, &event_loop)?;
-
+fn main() {
     // INIT world
     let mut world = World::empty();
 
@@ -39,24 +26,10 @@ fn main() -> Result<(), crow::Error> {
         .with(SandSystem, "sand", &[])
         .build();
     let mut draw_dispatcher = DispatcherBuilder::new()
-        .with_thread_local(DrawSystem { ctx })
+        .with_thread_local(DrawSystem)
         .build();
-
-    // Run crow event loop
-    event_loop.run(
-        move |event: Event<()>, _window_target: _, control_flow: &mut ControlFlow| match event {
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => *control_flow = ControlFlow::Exit,
-            Event::MainEventsCleared => {
-                game_tick_dispatcher.dispatch(&mut world);
-                draw_dispatcher.dispatch(&mut world);
-            }
-            Event::RedrawRequested(_) => {
-                // TODO: call draw dispatcher in here and somehow pass window context into it
-            }
-            _ => (),
-        },
-    )
+    game_tick_dispatcher.dispatch(&world);
+    draw_dispatcher.dispatch(&world);
+    game_tick_dispatcher.dispatch(&world);
+    draw_dispatcher.dispatch(&world);
 }
