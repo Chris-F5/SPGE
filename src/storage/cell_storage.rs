@@ -55,10 +55,10 @@ where
             None
         }
     }
-    pub fn insert(&mut self, x: u32, y: u32) -> &C {
+    pub fn insert(&mut self, x: u32, y: u32, component: C) {
         let id = cell_to_id(x, y);
         self.data.mask.add(id);
-        self.data.inner.insert(id)
+        self.data.inner.insert(id, component);
     }
     pub fn remove(&mut self, x: u32, y: u32) {
         let id = cell_to_id(x, y);
@@ -100,7 +100,7 @@ where
 pub trait InnerCellStorage<T>: Default + Sized {
     fn get_mut(&mut self, id: u32) -> &mut T;
     fn get(&self, id: u32) -> &T;
-    fn insert(&mut self, id: u32) -> &mut T;
+    fn insert(&mut self, id: u32, component: T);
     fn remove(&mut self, id: u32);
 }
 

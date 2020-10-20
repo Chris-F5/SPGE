@@ -17,10 +17,10 @@ fn main() {
 
     {
         let mut colors = WriteCellStorage::<CellColor>::fetch(&world);
-        colors.insert(5, 5);
-        colors.insert(4, 1);
-        colors.insert(4, 5);
-        colors.insert(10, 10);
+        colors.insert(5, 5, Default::default());
+        colors.insert(4, 1, Default::default());
+        colors.insert(4, 5, Default::default());
+        colors.insert(10, 10, Default::default());
     }
     let mut game_tick_dispatcher = DispatcherBuilder::new()
         .with(SandSystem, "sand", &[])

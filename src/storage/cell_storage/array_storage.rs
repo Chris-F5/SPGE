@@ -30,8 +30,8 @@ where
     fn get(&self, id: u32) -> &T {
         &self.cells[id as usize]
     }
-    fn insert(&mut self, id: u32) -> &mut T {
-        &mut self.cells[id as usize]
+    fn insert(&mut self, id: u32, component: T) {
+        self.cells[id as usize] = component;
     }
     fn remove(&mut self, _id: u32) {}
 }

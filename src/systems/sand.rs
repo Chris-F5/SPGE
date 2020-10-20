@@ -12,8 +12,7 @@ impl<'a> System<'a> for SandSystem {
         for (x, y) in (&cell_colors).join() {
             if y > 0 && !cell_colors.get(x, y - 1).is_some() {
                 let cell = *cell_colors.get(x, y).unwrap();
-                let mut below_cell = cell_colors.insert(x, y - 1);
-                below_cell = &cell;
+                cell_colors.insert(x, y - 1, cell);
                 cell_colors.remove(x, y);
             }
         }
