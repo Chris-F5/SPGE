@@ -1,8 +1,10 @@
 mod array_storage;
 mod cell_component_joining;
+mod slice_access_storage;
 
 pub use self::array_storage::ArrayStorage;
 pub use self::cell_component_joining::Join;
+pub use self::slice_access_storage::SliceAccessStorage;
 
 use crate::components::cell_components::CellComponent;
 use crate::CHUNK_SIZE;
@@ -18,7 +20,7 @@ fn id_to_cell(id: u32) -> (u32, u32) {
 }
 
 pub struct CellStorage<D> {
-    data: D,
+    pub data: D,
 }
 
 impl<D> CellStorage<D> {
@@ -63,6 +65,7 @@ where
     pub fn remove(&mut self, x: u32, y: u32) {
         let id = cell_to_id(x, y);
         self.data.mask.remove(id);
+        self.data.inner.remove(id);
     }
 }
 
@@ -82,7 +85,7 @@ where
     T: CellComponent,
 {
     mask: BitSet,
-    inner: T::Storage,
+    pub inner: T::Storage,
 }
 
 impl<T> Default for MaskedCellStorage<T>
