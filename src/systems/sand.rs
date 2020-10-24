@@ -14,6 +14,14 @@ impl<'a> System<'a> for SandSystem {
                 let cell = *cell_colors.get(x, y).unwrap();
                 cell_colors.insert(x, y - 1, cell);
                 cell_colors.remove(x, y);
+            } else if y > 0 && !cell_colors.get(x - 1, y - 1).is_some() {
+                let cell = *cell_colors.get(x, y).unwrap();
+                cell_colors.insert(x - 1, y - 1, cell);
+                cell_colors.remove(x, y);
+            } else if y > 0 && !cell_colors.get(x + 1, y - 1).is_some() {
+                let cell = *cell_colors.get(x, y).unwrap();
+                cell_colors.insert(x + 1, y - 1, cell);
+                cell_colors.remove(x, y);
             }
         }
     }
