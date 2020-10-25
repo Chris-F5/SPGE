@@ -1,9 +1,11 @@
 mod array_storage;
 mod cell_component_joining;
+mod null_storage;
 mod slice_access_storage;
 
 pub use self::array_storage::ArrayStorage;
 pub use self::cell_component_joining::Join;
+pub use self::null_storage::NullStorage;
 pub use self::slice_access_storage::SliceAccessStorage;
 
 use crate::components::cell_components::CellComponent;

@@ -7,7 +7,7 @@ use ggez::{
 };
 use shred::{DispatcherBuilder, SystemData, World};
 use spge::{
-    components::cell_components::{CellColor, TestComp},
+    components::cell_components::{CellColor, Sand, Solid, TestComp},
     storage::cell_storage::{CellStorage, MaskedCellStorage, WriteCellStorage},
     systems::SandSystem,
     WORLD_HEIGHT, WORLD_WIDTH,
@@ -21,9 +21,13 @@ fn main() {
 
     let cell_colors: MaskedCellStorage<CellColor> = Default::default();
     let test_cells: MaskedCellStorage<TestComp> = Default::default();
+    let sands: MaskedCellStorage<Sand> = Default::default();
+    let solids: MaskedCellStorage<Solid> = Default::default();
 
     world.insert(cell_colors);
     world.insert(test_cells);
+    world.insert(sands);
+    world.insert(solids);
 
     let update_dispatcher: shred::Dispatcher<'static, 'static> = DispatcherBuilder::new()
         .with(SandSystem, "sand", &[])
@@ -40,6 +44,16 @@ fn main() {
         .expect("error creating ggez context!");
 
     let mut game = Game::new(world, update_dispatcher);
+
+    for x in 0..WORLD_WIDTH {
+        game.insert_wall(x, 0);
+        game.insert_wall(x, WORLD_HEIGHT - 1)
+    }
+    for y in 1..WORLD_HEIGHT - 1 {
+        game.insert_wall(0, y);
+        game.insert_wall(WORLD_WIDTH - 1, y)
+    }
+
     match event::run(&mut ctx, &mut event_loop, &mut game) {
         Ok(_) => println!("Exited cleanly."),
         Err(e) => println!("Error occured: {}", e),
@@ -67,14 +81,32 @@ impl<'a> Game<'a> {
         }
     }
     pub fn insert_sand(&self, x: u32, y: u32) {
-        let sand_col = CellColor {
-            r: 224,
-            g: 188,
-            b: 27,
+        let mut solids = WriteCellStorage::<Solid>::fetch(&self.world);
+        if !solids.get(x, y).is_some() {
+            let sand_col = CellColor {
+                r: 224,
+                g: 188,
+                b: 27,
+                a: 255,
+            };
+            let mut colors = WriteCellStorage::<CellColor>::fetch(&self.world);
+            colors.insert(x, y, sand_col);
+            solids.insert(x, y, Solid);
+            let mut sands = WriteCellStorage::<Sand>::fetch(&self.world);
+            sands.insert(x, y, Sand);
+        }
+    }
+    pub fn insert_wall(&self, x: u32, y: u32) {
+        let col = CellColor {
+            r: 89,
+            g: 8,
+            b: 12,
             a: 255,
         };
         let mut colors = WriteCellStorage::<CellColor>::fetch(&self.world);
-        colors.insert(x, y, sand_col);
+        colors.insert(x, y, col);
+        let mut solids = WriteCellStorage::<Solid>::fetch(&self.world);
+        solids.insert(x, y, Solid);
     }
     fn mouse_down_on_pixel(&self, x: f32, y: f32) {
         if y > (WORLD_HEIGHT * CELL_SIZE) as f32
@@ -88,7 +120,6 @@ impl<'a> Game<'a> {
 
         let x = x.floor() as u32 / CELL_SIZE;
         let y = y.floor() as u32 / CELL_SIZE;
-        println!("{}, {}", x, y);
         self.insert_sand(x, y);
     }
 }

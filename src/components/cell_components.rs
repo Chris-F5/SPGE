@@ -1,7 +1,11 @@
 mod cell_color;
+mod sand;
+mod solid;
 mod test_comp;
 
 pub use cell_color::CellColor;
+pub use sand::Sand;
+pub use solid::Solid;
 pub use test_comp::TestComp;
 
 use crate::storage::cell_storage::InnerCellStorage;
