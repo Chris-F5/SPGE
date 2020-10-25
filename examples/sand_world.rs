@@ -10,7 +10,7 @@ use spge::{
     components::cell_components::{CellColor, TestComp},
     storage::cell_storage::{CellStorage, MaskedCellStorage, WriteCellStorage},
     systems::SandSystem,
-    CHUNK_SIZE,
+    WORLD_HEIGHT, WORLD_WIDTH,
 };
 
 const CELL_SIZE: u32 = 5;
@@ -33,8 +33,8 @@ fn main() {
     let (mut ctx, mut event_loop) = ContextBuilder::new("spge_game", "Chris Lang Games")
         .window_setup(ggez::conf::WindowSetup::default().title("Sand World Example"))
         .window_mode(ggez::conf::WindowMode::default().dimensions(
-            (CHUNK_SIZE * CELL_SIZE) as f32,
-            (CHUNK_SIZE * CELL_SIZE) as f32,
+            (WORLD_WIDTH * CELL_SIZE) as f32,
+            (WORLD_HEIGHT * CELL_SIZE) as f32,
         ))
         .build()
         .expect("error creating ggez context!");
@@ -77,17 +77,18 @@ impl<'a> Game<'a> {
         colors.insert(x, y, sand_col);
     }
     fn mouse_down_on_pixel(&self, x: f32, y: f32) {
-        if y > (CHUNK_SIZE * CELL_SIZE) as f32
-            || y < 0.0
-            || x > (CHUNK_SIZE * CELL_SIZE) as f32
-            || x < 0.0
+        if y > (WORLD_HEIGHT * CELL_SIZE) as f32
+            || y <= 0.0
+            || x > (WORLD_WIDTH * CELL_SIZE) as f32
+            || x <= 0.0
         {
             return;
         }
-        let y = (y - (CHUNK_SIZE * CELL_SIZE) as f32) * -1.0;
+        let y = (y - (WORLD_HEIGHT * CELL_SIZE) as f32) * -1.0;
 
         let x = x.floor() as u32 / CELL_SIZE;
         let y = y.floor() as u32 / CELL_SIZE;
+        println!("{}, {}", x, y);
         self.insert_sand(x, y);
     }
 }
@@ -142,18 +143,23 @@ impl Renderer {
         let cell_colors = CellStorage::new(cell_colors);
 
         let colors = cell_colors.data.inner.cells;
-        let mut rgba_colors: [u8; (CHUNK_SIZE * CHUNK_SIZE * 4) as usize] =
+        let mut rgba_colors: [u8; (WORLD_WIDTH * WORLD_HEIGHT * 4) as usize] =
             unsafe { std::mem::MaybeUninit::uninit().assume_init() };
 
-        for i in 0..(CHUNK_SIZE * CHUNK_SIZE) as usize {
+        for i in 0..(WORLD_WIDTH * WORLD_HEIGHT) as usize {
             rgba_colors[i * 4] = colors[i].r;
             rgba_colors[i * 4 + 1] = colors[i].g;
             rgba_colors[i * 4 + 2] = colors[i].b;
             rgba_colors[i * 4 + 3] = colors[i].a;
         }
 
-        let mut cells_image =
-            Image::from_rgba8(ctx, CHUNK_SIZE as u16, CHUNK_SIZE as u16, &rgba_colors[..]).unwrap();
+        let mut cells_image = Image::from_rgba8(
+            ctx,
+            WORLD_WIDTH as u16,
+            WORLD_HEIGHT as u16,
+            &rgba_colors[..],
+        )
+        .unwrap();
 
         cells_image.set_filter(graphics::FilterMode::Nearest);
 
@@ -161,7 +167,7 @@ impl Renderer {
             ctx,
             &cells_image,
             graphics::DrawParam::new()
-                .dest(Point2::new(0.0, (CHUNK_SIZE * CELL_SIZE) as f32))
+                .dest(Point2::new(0.0, (WORLD_HEIGHT * CELL_SIZE) as f32))
                 .scale(Vector2::new(CELL_SIZE as f32, -(CELL_SIZE as f32))),
         )
         .unwrap();

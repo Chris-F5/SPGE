@@ -7,16 +7,16 @@ pub use self::cell_component_joining::Join;
 pub use self::slice_access_storage::SliceAccessStorage;
 
 use crate::components::cell_components::CellComponent;
-use crate::CHUNK_SIZE;
+use crate::WORLD_WIDTH;
 use hibitset::BitSet;
 use shred::{Fetch, FetchMut, ResourceId, SystemData, World};
 use std::ops::{Deref, DerefMut};
 
 fn cell_to_id(x: u32, y: u32) -> u32 {
-    x + y * CHUNK_SIZE
+    x + y * WORLD_WIDTH
 }
 fn id_to_cell(id: u32) -> (u32, u32) {
-    (id % CHUNK_SIZE, id / CHUNK_SIZE)
+    (id % WORLD_WIDTH, id / WORLD_WIDTH)
 }
 
 pub struct CellStorage<D> {

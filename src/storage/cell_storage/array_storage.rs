@@ -1,12 +1,12 @@
 use crate::components::cell_components::CellComponent;
 use crate::storage::cell_storage::InnerCellStorage;
-use crate::CHUNK_SIZE;
+use crate::{WORLD_HEIGHT, WORLD_WIDTH};
 
 pub struct ArrayStorage<T>
 where
     T: CellComponent,
 {
-    cells: [T; (CHUNK_SIZE * CHUNK_SIZE) as usize],
+    cells: [T; (WORLD_HEIGHT * WORLD_WIDTH) as usize],
 }
 
 impl<T> Default for ArrayStorage<T>
@@ -15,7 +15,7 @@ where
 {
     fn default() -> Self {
         ArrayStorage::<T> {
-            cells: [Default::default(); (CHUNK_SIZE * CHUNK_SIZE) as usize],
+            cells: [Default::default(); (WORLD_HEIGHT * WORLD_WIDTH) as usize],
         }
     }
 }

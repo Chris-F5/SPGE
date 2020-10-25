@@ -1,12 +1,12 @@
 use crate::components::cell_components::CellComponent;
 use crate::storage::cell_storage::InnerCellStorage;
-use crate::CHUNK_SIZE;
+use crate::{WORLD_HEIGHT, WORLD_WIDTH};
 
 pub struct SliceAccessStorage<T>
 where
     T: CellComponent,
 {
-    pub cells: [T; (CHUNK_SIZE * CHUNK_SIZE) as usize],
+    pub cells: [T; (WORLD_WIDTH * WORLD_HEIGHT) as usize],
 }
 
 impl<T> Default for SliceAccessStorage<T>
@@ -15,7 +15,7 @@ where
 {
     fn default() -> Self {
         SliceAccessStorage::<T> {
-            cells: [Default::default(); (CHUNK_SIZE * CHUNK_SIZE) as usize],
+            cells: [Default::default(); (WORLD_WIDTH * WORLD_HEIGHT) as usize],
         }
     }
 }
