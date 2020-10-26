@@ -24,5 +24,5 @@ where
     }
     fn insert(&mut self, _id: u32, _component: T) {}
     fn remove(&mut self, _id: u32) {}
-    fn move_cell(&mut self, from_id: u32, to_id: u32) {}
+    fn move_cell(&mut self, _from_id: u32, _to_id: u32) {}
 }

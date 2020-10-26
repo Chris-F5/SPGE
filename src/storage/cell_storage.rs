@@ -117,12 +117,19 @@ where
     }
 }
 
-pub trait InnerCellStorage<T>: Default + Sized {
+pub trait InnerCellStorage<T>: Default + Sized
+where
+    T: CellComponent,
+{
     fn get_mut(&mut self, id: u32) -> &mut T;
     fn get(&self, id: u32) -> &T;
     fn insert(&mut self, id: u32, component: T);
     fn remove(&mut self, id: u32);
-    fn move_cell(&mut self, from_id: u32, to_id: u32);
+    fn move_cell(&mut self, from_id: u32, to_id: u32) {
+        let from_cell = *self.get(from_id);
+        self.remove(from_id);
+        self.insert(to_id, from_cell);
+    }
 }
 
 pub type ReadCellStorage<'a, T> = CellStorage<Fetch<'a, MaskedCellStorage<T>>>;
