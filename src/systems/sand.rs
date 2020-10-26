@@ -14,28 +14,18 @@ impl<'a> System<'a> for SandSystem {
     );
     fn run(&mut self, (mut cell_colors, mut solids, mut sands): Self::SystemData) {
         for (x, y) in (&sands).join() {
-            let color = *cell_colors.get(x, y).unwrap();
             if !solids.get(x, y - 1).is_some() {
-                cell_colors.insert(x, y - 1, color);
-                cell_colors.remove(x, y);
-                solids.insert(x, y - 1, Solid);
-                solids.remove(x, y);
-                sands.insert(x, y - 1, Sand);
-                sands.remove(x, y);
+                cell_colors.move_cell(x, y, x, y - 1);
+                solids.move_cell(x, y, x, y - 1);
+                sands.move_cell(x, y, x, y - 1);
             } else if !solids.get(x - 1, y - 1).is_some() {
-                cell_colors.insert(x - 1, y - 1, color);
-                cell_colors.remove(x, y);
-                solids.insert(x - 1, y - 1, Solid);
-                solids.remove(x, y);
-                sands.insert(x - 1, y - 1, Sand);
-                sands.remove(x, y);
+                cell_colors.move_cell(x, y, x - 1, y - 1);
+                solids.move_cell(x, y, x - 1, y - 1);
+                sands.move_cell(x, y, x - 1, y - 1);
             } else if !solids.get(x + 1, y - 1).is_some() {
-                cell_colors.insert(x + 1, y - 1, color);
-                cell_colors.remove(x, y);
-                solids.insert(x + 1, y - 1, Solid);
-                solids.remove(x, y);
-                sands.insert(x + 1, y - 1, Sand);
-                sands.remove(x, y);
+                cell_colors.move_cell(x, y, x + 1, y - 1);
+                solids.move_cell(x, y, x + 1, y - 1);
+                sands.move_cell(x, y, x + 1, y - 1);
             }
         }
     }

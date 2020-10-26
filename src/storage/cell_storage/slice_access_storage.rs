@@ -36,4 +36,9 @@ where
     fn remove(&mut self, id: u32) {
         self.cells[id as usize] = Default::default();
     }
+    fn move_cell(&mut self, from_id: u32, to_id: u32) {
+        let from_cell = *self.get(from_id);
+        self.remove(from_id);
+        self.insert(to_id, from_cell);
+    }
 }

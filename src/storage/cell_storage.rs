@@ -44,6 +44,10 @@ where
             None
         }
     }
+    pub fn get_unchecked(&self, x: u32, y: u32) -> &C {
+        let id = cell_to_id(x, y);
+        self.data.inner.get(id)
+    }
 }
 
 impl<C, D> CellStorage<D>
@@ -59,15 +63,26 @@ where
             None
         }
     }
+    pub fn get_mut_unchecked(&mut self, x: u32, y: u32) -> &mut C {
+        let id = cell_to_id(x, y);
+        self.data.inner.get_mut(id)
+    }
     pub fn insert(&mut self, x: u32, y: u32, component: C) {
         let id = cell_to_id(x, y);
-        self.data.mask.add(id);
         self.data.inner.insert(id, component);
+        self.data.mask.add(id);
     }
     pub fn remove(&mut self, x: u32, y: u32) {
         let id = cell_to_id(x, y);
-        self.data.mask.remove(id);
         self.data.inner.remove(id);
+        self.data.mask.remove(id);
+    }
+    pub fn move_cell(&mut self, from_x: u32, from_y: u32, to_x: u32, to_y: u32) {
+        let from_id = cell_to_id(from_x, from_y);
+        let to_id = cell_to_id(to_x, to_y);
+        self.data.inner.move_cell(from_id, to_id);
+        self.data.mask.remove(from_id);
+        self.data.mask.add(to_id);
     }
 }
 
@@ -107,6 +122,7 @@ pub trait InnerCellStorage<T>: Default + Sized {
     fn get(&self, id: u32) -> &T;
     fn insert(&mut self, id: u32, component: T);
     fn remove(&mut self, id: u32);
+    fn move_cell(&mut self, from_id: u32, to_id: u32);
 }
 
 pub type ReadCellStorage<'a, T> = CellStorage<Fetch<'a, MaskedCellStorage<T>>>;

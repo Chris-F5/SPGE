@@ -34,4 +34,9 @@ where
         self.cells[id as usize] = component;
     }
     fn remove(&mut self, _id: u32) {}
+    fn move_cell(&mut self, from_id: u32, to_id: u32) {
+        let from_cell = *self.get(from_id);
+        self.remove(from_id);
+        self.insert(to_id, from_cell);
+    }
 }
