@@ -173,3 +173,18 @@ where
         vec![ResourceId::new::<MaskedCellStorage<T>>()]
     }
 }
+
+#[derive(SystemData)]
+pub struct WriteCells<'a> {
+    pub color: WriteCellStorage<'a, crate::components::cell_components::CellColor>,
+    pub sand: WriteCellStorage<'a, crate::components::cell_components::Sand>,
+    pub solid: WriteCellStorage<'a, crate::components::cell_components::Solid>,
+}
+
+impl<'a> WriteCells<'a> {
+    pub fn move_cell(&mut self, from_x: u32, from_y: u32, to_x: u32, to_y: u32) {
+        self.color.move_cell(from_x, from_y, to_x, to_y);
+        self.sand.move_cell(from_x, from_y, to_x, to_y);
+        self.solid.move_cell(from_x, from_y, to_x, to_y);
+    }
+}
