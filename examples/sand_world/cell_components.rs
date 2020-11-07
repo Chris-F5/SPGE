@@ -39,28 +39,16 @@ impl Default for CellColor {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Sand;
 
 impl CellComponent for Sand {
     type Storage = NullStorage<Self>;
 }
 
-impl Default for Sand {
-    fn default() -> Self {
-        Sand
-    }
-}
-
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Solid;
 
 impl CellComponent for Solid {
     type Storage = NullStorage<Self>;
-}
-
-impl Default for Solid {
-    fn default() -> Self {
-        Solid
-    }
 }
