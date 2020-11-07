@@ -8,7 +8,6 @@ pub use self::cell_component_joining::Join;
 pub use self::null_storage::NullStorage;
 pub use self::slice_access_storage::SliceAccessStorage;
 
-use crate::components::cell_components::CellComponent;
 use crate::WORLD_WIDTH;
 use hibitset::BitSet;
 use shred::{Fetch, FetchMut, ResourceId, SystemData, World};
@@ -19,6 +18,12 @@ fn cell_to_id(x: u32, y: u32) -> u32 {
 }
 fn id_to_cell(id: u32) -> (u32, u32) {
     (id % WORLD_WIDTH, id / WORLD_WIDTH)
+}
+
+use std::any::Any;
+
+pub trait CellComponent: Any + Sized + Default + Copy {
+    type Storage: InnerCellStorage<Self> + Send + Sync;
 }
 
 pub struct CellStorage<D> {
@@ -171,20 +176,5 @@ where
 
     fn writes() -> Vec<ResourceId> {
         vec![ResourceId::new::<MaskedCellStorage<T>>()]
-    }
-}
-
-#[derive(SystemData)]
-pub struct WriteCells<'a> {
-    pub color: WriteCellStorage<'a, crate::components::cell_components::CellColor>,
-    pub sand: WriteCellStorage<'a, crate::components::cell_components::Sand>,
-    pub solid: WriteCellStorage<'a, crate::components::cell_components::Solid>,
-}
-
-impl<'a> WriteCells<'a> {
-    pub fn move_cell(&mut self, from_x: u32, from_y: u32, to_x: u32, to_y: u32) {
-        self.color.move_cell(from_x, from_y, to_x, to_y);
-        self.sand.move_cell(from_x, from_y, to_x, to_y);
-        self.solid.move_cell(from_x, from_y, to_x, to_y);
     }
 }

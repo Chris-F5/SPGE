@@ -1,5 +1,6 @@
-use crate::storage::cell_storage::{Join, WriteCells};
+use crate::WriteCells;
 use shred::System;
+use spge::cell_storage::Join;
 
 pub struct SandSystem;
 

@@ -1,3 +1,8 @@
+mod cell_components;
+mod sand_system;
+
+pub use cell_components::{CellColor, Sand, Solid, WriteCells};
+
 use ggez::{
     event::{self, EventHandler, MouseButton},
     graphics,
@@ -7,9 +12,7 @@ use ggez::{
 };
 use shred::{DispatcherBuilder, SystemData, World};
 use spge::{
-    components::cell_components::{CellColor, Sand, Solid, TestComp},
-    storage::cell_storage::{CellStorage, MaskedCellStorage, WriteCellStorage},
-    systems::SandSystem,
+    cell_storage::{CellStorage, MaskedCellStorage, WriteCellStorage},
     WORLD_HEIGHT, WORLD_WIDTH,
 };
 
@@ -20,17 +23,15 @@ fn main() {
     let mut world = World::empty();
 
     let cell_colors: MaskedCellStorage<CellColor> = Default::default();
-    let test_cells: MaskedCellStorage<TestComp> = Default::default();
     let sands: MaskedCellStorage<Sand> = Default::default();
     let solids: MaskedCellStorage<Solid> = Default::default();
 
     world.insert(cell_colors);
-    world.insert(test_cells);
     world.insert(sands);
     world.insert(solids);
 
     let update_dispatcher: shred::Dispatcher<'static, 'static> = DispatcherBuilder::new()
-        .with(SandSystem, "sand", &[])
+        .with(sand_system::SandSystem, "sand", &[])
         .build();
 
     // Make window and run event loop

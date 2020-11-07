@@ -1,5 +1,4 @@
-use crate::components::cell_components::CellComponent;
-use crate::storage::cell_storage::InnerCellStorage;
+use super::{CellComponent, InnerCellStorage};
 
 pub struct NullStorage<T>(T);
 

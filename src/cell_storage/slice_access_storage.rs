@@ -1,5 +1,4 @@
-use crate::components::cell_components::CellComponent;
-use crate::storage::cell_storage::InnerCellStorage;
+use super::{CellComponent, InnerCellStorage};
 use crate::{WORLD_HEIGHT, WORLD_WIDTH};
 
 pub struct SliceAccessStorage<T>
