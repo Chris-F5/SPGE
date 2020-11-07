@@ -6,6 +6,7 @@ pub struct WriteCells<'a> {
     pub color: WriteCellStorage<'a, CellColor>,
     pub sand: WriteCellStorage<'a, Sand>,
     pub solid: WriteCellStorage<'a, Solid>,
+    pub water: WriteCellStorage<'a, Water>,
 }
 
 impl<'a> WriteCells<'a> {
@@ -13,6 +14,7 @@ impl<'a> WriteCells<'a> {
         self.color.move_cell(from_x, from_y, to_x, to_y);
         self.sand.move_cell(from_x, from_y, to_x, to_y);
         self.solid.move_cell(from_x, from_y, to_x, to_y);
+        self.water.move_cell(from_x, from_y, to_x, to_y);
     }
 }
 
@@ -50,5 +52,12 @@ impl CellComponent for Sand {
 pub struct Solid;
 
 impl CellComponent for Solid {
+    type Storage = NullStorage<Self>;
+}
+
+#[derive(Copy, Clone, Default)]
+pub struct Water;
+
+impl CellComponent for Water {
     type Storage = NullStorage<Self>;
 }

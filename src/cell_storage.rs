@@ -85,9 +85,13 @@ where
     pub fn move_cell(&mut self, from_x: u32, from_y: u32, to_x: u32, to_y: u32) {
         let from_id = cell_to_id(from_x, from_y);
         let to_id = cell_to_id(to_x, to_y);
-        self.data.inner.move_cell(from_id, to_id);
-        self.data.mask.remove(from_id);
-        self.data.mask.add(to_id);
+        if self.data.mask.contains(from_id) {
+            self.data.inner.move_cell(from_id, to_id);
+            self.data.mask.remove(from_id);
+            self.data.mask.add(to_id);
+        } else {
+            self.data.mask.remove(to_id);
+        }
     }
 }
 
