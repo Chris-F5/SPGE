@@ -1,128 +1,95 @@
 mod array_storage;
 mod cell_component_joining;
+mod cell_mask;
+mod masked_array_storage;
 mod null_storage;
-mod slice_access_storage;
 
 pub use self::array_storage::ArrayStorage;
 pub use self::cell_component_joining::Join;
+pub use self::cell_mask::CellMask;
+pub use self::masked_array_storage::MaskedArrayStorage;
 pub use self::null_storage::NullStorage;
-pub use self::slice_access_storage::SliceAccessStorage;
 
 use crate::WORLD_WIDTH;
-use hibitset::BitSet;
 use shred::{Fetch, FetchMut, ResourceId, SystemData, World};
 use std::ops::{Deref, DerefMut};
 
-fn cell_to_id(x: u32, y: u32) -> u32 {
+pub fn cell_to_id(x: u32, y: u32) -> u32 {
     x + y * WORLD_WIDTH
 }
-fn id_to_cell(id: u32) -> (u32, u32) {
+pub fn id_to_cell(id: u32) -> (u32, u32) {
     (id % WORLD_WIDTH, id / WORLD_WIDTH)
 }
 
 use std::any::Any;
 
-pub trait CellComponent: Any + Sized + Default + Copy {
+pub trait CellComponent: Any + Sized + Default + Copy + Clone {
     type Storage: InnerCellStorage<Self> + Send + Sync;
 }
 
-pub struct CellStorage<D> {
+pub struct CellStorageAccessor<D> {
     pub data: D,
 }
 
-impl<D> CellStorage<D> {
-    pub fn new(data: D) -> Self {
-        CellStorage::<D> { data: data }
+impl<D> CellStorageAccessor<D> {
+    pub fn new(data: D) -> CellStorageAccessor<D> {
+        CellStorageAccessor::<D> { data: data }
     }
 }
-
-impl<C, D> CellStorage<D>
+impl<C, D> Deref for CellStorageAccessor<D>
 where
     C: CellComponent,
-    D: Deref<Target = MaskedCellStorage<C>>,
+    D: Deref<Target = CellStorage<C>>,
 {
-    pub fn get(&self, x: u32, y: u32) -> Option<&C> {
-        let id = cell_to_id(x, y);
-        if self.data.mask.contains(id) {
-            Some(self.data.inner.get(id))
-        } else {
-            None
-        }
-    }
-    pub fn get_unchecked(&self, x: u32, y: u32) -> &C {
-        let id = cell_to_id(x, y);
-        self.data.inner.get(id)
+    type Target = D;
+    fn deref(&self) -> &D {
+        &self.data
     }
 }
 
-impl<C, D> CellStorage<D>
+impl<C, D> DerefMut for CellStorageAccessor<D>
 where
     C: CellComponent,
-    D: DerefMut<Target = MaskedCellStorage<C>>,
+    D: Deref<Target = CellStorage<C>>,
 {
-    pub fn get_mut(&mut self, x: u32, y: u32) -> Option<&mut C> {
-        let id = cell_to_id(x, y);
-        if self.data.mask.contains(id) {
-            Some(self.data.inner.get_mut(id))
-        } else {
-            None
-        }
-    }
-    pub fn get_mut_unchecked(&mut self, x: u32, y: u32) -> &mut C {
-        let id = cell_to_id(x, y);
-        self.data.inner.get_mut(id)
-    }
-    pub fn insert(&mut self, x: u32, y: u32, component: C) {
-        let id = cell_to_id(x, y);
-        self.data.inner.insert(id, component);
-        self.data.mask.add(id);
-    }
-    pub fn remove(&mut self, x: u32, y: u32) {
-        let id = cell_to_id(x, y);
-        self.data.inner.remove(id);
-        self.data.mask.remove(id);
-    }
-    pub fn move_cell(&mut self, from_x: u32, from_y: u32, to_x: u32, to_y: u32) {
-        let from_id = cell_to_id(from_x, from_y);
-        let to_id = cell_to_id(to_x, to_y);
-        if self.data.mask.contains(from_id) {
-            self.data.inner.move_cell(from_id, to_id);
-            self.data.mask.remove(from_id);
-            self.data.mask.add(to_id);
-        } else {
-            self.data.mask.remove(to_id);
-        }
+    fn deref_mut(&mut self) -> &mut D {
+        &mut self.data
     }
 }
 
-impl<'a, T, C> Join for &'a CellStorage<T>
+pub struct CellStorage<C>
 where
     C: CellComponent,
-    T: Deref<Target = MaskedCellStorage<C>>,
 {
-    type Mask = &'a BitSet;
-    fn get_mask(self) -> &'a BitSet {
-        &self.data.mask
-    }
+    inner: C::Storage,
 }
 
-pub struct MaskedCellStorage<T>
+impl<C> Default for CellStorage<C>
 where
-    T: CellComponent,
-{
-    mask: BitSet,
-    pub inner: T::Storage,
-}
-
-impl<T> Default for MaskedCellStorage<T>
-where
-    T: CellComponent,
+    C: CellComponent,
 {
     fn default() -> Self {
-        MaskedCellStorage::<T> {
-            mask: Default::default(),
+        CellStorage::<C> {
             inner: Default::default(),
         }
+    }
+}
+
+impl<C> Deref for CellStorage<C>
+where
+    C: CellComponent,
+{
+    type Target = C::Storage;
+    fn deref(&self) -> &C::Storage {
+        &self.inner
+    }
+}
+impl<C> DerefMut for CellStorage<C>
+where
+    C: CellComponent,
+{
+    fn deref_mut(&mut self) -> &mut C::Storage {
+        &mut self.inner
     }
 }
 
@@ -130,31 +97,22 @@ pub trait InnerCellStorage<T>: Default + Sized
 where
     T: CellComponent,
 {
-    fn get_mut(&mut self, id: u32) -> &mut T;
-    fn get(&self, id: u32) -> &T;
-    fn insert(&mut self, id: u32, component: T);
-    fn remove(&mut self, id: u32);
-    fn move_cell(&mut self, from_id: u32, to_id: u32) {
-        let from_cell = *self.get(from_id);
-        self.remove(from_id);
-        self.insert(to_id, from_cell);
-    }
 }
 
-pub type ReadCellStorage<'a, T> = CellStorage<Fetch<'a, MaskedCellStorage<T>>>;
+pub type ReadCellStorage<'a, C> = CellStorageAccessor<Fetch<'a, CellStorage<C>>>;
 
-impl<'a, T> SystemData<'a> for ReadCellStorage<'a, T>
+impl<'a, C> SystemData<'a> for ReadCellStorage<'a, C>
 where
-    T: CellComponent,
+    C: CellComponent,
 {
     fn setup(_res: &mut World) {}
 
     fn fetch(res: &'a World) -> Self {
-        CellStorage::new(res.fetch())
+        CellStorageAccessor::new(res.fetch())
     }
 
     fn reads() -> Vec<ResourceId> {
-        vec![ResourceId::new::<MaskedCellStorage<T>>()]
+        vec![ResourceId::new::<CellStorage<C>>()]
     }
 
     fn writes() -> Vec<ResourceId> {
@@ -162,16 +120,16 @@ where
     }
 }
 
-pub type WriteCellStorage<'a, T> = CellStorage<FetchMut<'a, MaskedCellStorage<T>>>;
+pub type WriteCellStorage<'a, C> = CellStorageAccessor<FetchMut<'a, CellStorage<C>>>;
 
-impl<'a, T> SystemData<'a> for WriteCellStorage<'a, T>
+impl<'a, C> SystemData<'a> for WriteCellStorage<'a, C>
 where
-    T: CellComponent,
+    C: CellComponent,
 {
     fn setup(_res: &mut World) {}
 
     fn fetch(res: &'a World) -> Self {
-        CellStorage::new(res.fetch_mut())
+        CellStorageAccessor::new(res.fetch_mut())
     }
 
     fn reads() -> Vec<ResourceId> {
@@ -179,6 +137,6 @@ where
     }
 
     fn writes() -> Vec<ResourceId> {
-        vec![ResourceId::new::<MaskedCellStorage<T>>()]
+        vec![ResourceId::new::<CellStorage<C>>()]
     }
 }

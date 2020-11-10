@@ -1,27 +1,42 @@
-use super::{CellComponent, InnerCellStorage};
+use super::{cell_to_id, CellComponent, CellMask, InnerCellStorage};
+use std::marker::PhantomData;
 
-pub struct NullStorage<T>(T);
+pub struct NullStorage<C> {
+    mask: CellMask,
+    phantom: PhantomData<C>,
+}
 
-impl<T> Default for NullStorage<T>
-where
-    T: Default,
-{
-    fn default() -> Self {
-        NullStorage(Default::default())
+impl<C> Default for NullStorage<C> {
+    fn default() -> NullStorage<C> {
+        NullStorage {
+            mask: CellMask::empty(),
+            phantom: PhantomData,
+        }
     }
 }
 
-impl<T> InnerCellStorage<T> for NullStorage<T>
+impl<C> InnerCellStorage<C> for NullStorage<C> where C: CellComponent {}
+
+impl<C> NullStorage<C>
 where
-    T: CellComponent,
+    C: CellComponent,
 {
-    fn get_mut(&mut self, _id: u32) -> &mut T {
-        &mut self.0
+    pub fn insert(&mut self, x: u32, y: u32) {
+        self.mask.insert(cell_to_id(x, y));
     }
-    fn get(&self, _id: u32) -> &T {
-        &self.0
+    pub fn get_mask(&self) -> &CellMask {
+        &self.mask
     }
-    fn insert(&mut self, _id: u32, _component: T) {}
-    fn remove(&mut self, _id: u32) {}
-    fn move_cell(&mut self, _from_id: u32, _to_id: u32) {}
+    pub fn contains(&self, x: u32, y: u32) -> bool {
+        let id = cell_to_id(x, y);
+        self.mask.contains(id)
+    }
+    pub fn move_cell(&mut self, from_id: u32, to_id: u32) {
+        if self.mask.contains(from_id) {
+            self.mask.insert(to_id);
+            self.mask.remove(from_id);
+        } else {
+            self.mask.remove(to_id);
+        }
+    }
 }

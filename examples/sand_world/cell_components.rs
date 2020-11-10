@@ -1,5 +1,5 @@
 use shred::{ResourceId, SystemData, World};
-use spge::cell_storage::{CellComponent, NullStorage, SliceAccessStorage, WriteCellStorage};
+use spge::cell_storage::{cell_to_id, ArrayStorage, CellComponent, NullStorage, WriteCellStorage};
 
 #[derive(SystemData)]
 pub struct WriteCells<'a> {
@@ -11,10 +11,12 @@ pub struct WriteCells<'a> {
 
 impl<'a> WriteCells<'a> {
     pub fn move_cell(&mut self, from_x: u32, from_y: u32, to_x: u32, to_y: u32) {
-        self.color.move_cell(from_x, from_y, to_x, to_y);
-        self.sand.move_cell(from_x, from_y, to_x, to_y);
-        self.solid.move_cell(from_x, from_y, to_x, to_y);
-        self.water.move_cell(from_x, from_y, to_x, to_y);
+        let from_id = cell_to_id(from_x, from_y);
+        let to_id = cell_to_id(to_x, to_y);
+        self.color.move_cell(from_id, to_id);
+        self.sand.move_cell(from_id, to_id);
+        self.solid.move_cell(from_id, to_id);
+        self.water.move_cell(from_id, to_id);
     }
 }
 
@@ -27,7 +29,7 @@ pub struct CellColor {
 }
 
 impl CellComponent for CellColor {
-    type Storage = SliceAccessStorage<Self>;
+    type Storage = ArrayStorage<Self>;
 }
 
 impl Default for CellColor {

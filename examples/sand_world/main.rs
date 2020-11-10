@@ -13,7 +13,7 @@ use ggez::{
 };
 use shred::{DispatcherBuilder, SystemData, World};
 use spge::{
-    cell_storage::{CellStorage, MaskedCellStorage, WriteCellStorage},
+    cell_storage::{CellStorage, ReadCellStorage, WriteCellStorage},
     WORLD_HEIGHT, WORLD_WIDTH,
 };
 
@@ -23,10 +23,10 @@ fn main() {
     // INIT world
     let mut world = World::empty();
 
-    let cell_color: MaskedCellStorage<CellColor> = Default::default();
-    let sand: MaskedCellStorage<Sand> = Default::default();
-    let solid: MaskedCellStorage<Solid> = Default::default();
-    let water: MaskedCellStorage<Water> = Default::default();
+    let cell_color: CellStorage<CellColor> = Default::default();
+    let sand: CellStorage<Sand> = Default::default();
+    let solid: CellStorage<Solid> = Default::default();
+    let water: CellStorage<Water> = Default::default();
 
     world.insert(cell_color);
     world.insert(sand);
@@ -89,7 +89,7 @@ impl<'a> Game<'a> {
     }
     pub fn insert_sand(&self, x: u32, y: u32) {
         let mut solids = WriteCellStorage::<Solid>::fetch(&self.world);
-        if !solids.get(x, y).is_some() {
+        if !solids.contains(x, y) {
             let sand_col = CellColor {
                 r: 224,
                 g: 188,
@@ -97,25 +97,25 @@ impl<'a> Game<'a> {
                 a: 255,
             };
             let mut colors = WriteCellStorage::<CellColor>::fetch(&self.world);
-            colors.insert(x, y, sand_col);
-            solids.insert(x, y, Solid);
+            *colors.get_cell_mut(x, y) = sand_col;
+            solids.insert(x, y);
             let mut sands = WriteCellStorage::<Sand>::fetch(&self.world);
-            sands.insert(x, y, Sand);
+            sands.insert(x, y);
         }
     }
     pub fn insert_water(&self, x: u32, y: u32) {
-        let mut solids = WriteCellStorage::<Solid>::fetch(&self.world);
-        if !solids.get(x, y).is_some() {
-            let water_col = CellColor {
+        let solids = ReadCellStorage::<Solid>::fetch(&self.world);
+        if !solids.contains(x, y) {
+            let col = CellColor {
                 r: 52,
                 g: 171,
                 b: 235,
                 a: 255,
             };
             let mut colors = WriteCellStorage::<CellColor>::fetch(&self.world);
-            colors.insert(x, y, water_col);
+            *colors.get_cell_mut(x, y) = col;
             let mut waters = WriteCellStorage::<Water>::fetch(&self.world);
-            waters.insert(x, y, Water);
+            waters.insert(x, y);
         }
     }
     pub fn insert_wall(&self, x: u32, y: u32) {
@@ -126,9 +126,9 @@ impl<'a> Game<'a> {
             a: 255,
         };
         let mut colors = WriteCellStorage::<CellColor>::fetch(&self.world);
-        colors.insert(x, y, col);
+        *colors.get_cell_mut(x, y) = col;
         let mut solids = WriteCellStorage::<Solid>::fetch(&self.world);
-        solids.insert(x, y, Solid);
+        solids.insert(x, y);
     }
     fn left_mouse_down_on_pixel(&self, x: f32, y: f32) {
         if y > (WORLD_HEIGHT * CELL_SIZE) as f32
@@ -215,10 +215,9 @@ impl Renderer {
     }
 
     pub fn render(&mut self, ctx: &mut Context, world: &mut World) {
-        let cell_colors = world.fetch::<MaskedCellStorage<CellColor>>();
-        let cell_colors = CellStorage::new(cell_colors);
+        let cell_colors = ReadCellStorage::<CellColor>::fetch(&world);
 
-        let colors = cell_colors.data.inner.cells;
+        let colors = cell_colors.cells;
         let mut rgba_colors: [u8; (WORLD_WIDTH * WORLD_HEIGHT * 4) as usize] =
             unsafe { std::mem::MaybeUninit::uninit().assume_init() };
 
