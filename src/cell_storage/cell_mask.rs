@@ -1,4 +1,4 @@
-use super::Join;
+use super::{CellPos, Join};
 use hibitset::BitSet;
 
 pub struct CellMask {
@@ -11,14 +11,14 @@ impl CellMask {
             mask: BitSet::with_capacity(crate::WORLD_CELL_COUNT),
         }
     }
-    pub fn insert(&mut self, id: u32) {
-        self.mask.add(id);
+    pub fn insert(&mut self, pos: &dyn CellPos) {
+        self.mask.add(pos.index());
     }
-    pub fn remove(&mut self, id: u32) {
-        self.mask.remove(id);
+    pub fn remove(&mut self, pos: &dyn CellPos) {
+        self.mask.remove(pos.index());
     }
-    pub fn contains(&self, id: u32) -> bool {
-        self.mask.contains(id)
+    pub fn contains(&self, pos: &dyn CellPos) -> bool {
+        self.mask.contains(pos.index())
     }
 }
 

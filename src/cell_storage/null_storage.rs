@@ -1,4 +1,4 @@
-use super::{cell_to_id, CellComponent, CellMask, InnerCellStorage};
+use super::{CellComponent, CellMask, CellPos, InnerCellStorage};
 use std::marker::PhantomData;
 
 pub struct NullStorage<C> {
@@ -21,22 +21,21 @@ impl<C> NullStorage<C>
 where
     C: CellComponent,
 {
-    pub fn insert(&mut self, x: u32, y: u32) {
-        self.mask.insert(cell_to_id(x, y));
+    pub fn insert(&mut self, pos: &dyn CellPos) {
+        self.mask.insert(pos);
     }
     pub fn get_mask(&self) -> &CellMask {
         &self.mask
     }
-    pub fn contains(&self, x: u32, y: u32) -> bool {
-        let id = cell_to_id(x, y);
-        self.mask.contains(id)
+    pub fn contains(&self, pos: &dyn CellPos) -> bool {
+        self.mask.contains(pos)
     }
-    pub fn move_cell(&mut self, from_id: u32, to_id: u32) {
-        if self.mask.contains(from_id) {
-            self.mask.insert(to_id);
-            self.mask.remove(from_id);
+    pub fn move_cell(&mut self, from_pos: &dyn CellPos, to_pos: &dyn CellPos) {
+        if self.mask.contains(from_pos) {
+            self.mask.insert(to_pos);
+            self.mask.remove(from_pos);
         } else {
-            self.mask.remove(to_id);
+            self.mask.remove(to_pos);
         }
     }
 }

@@ -12,16 +12,31 @@ pub use self::null_storage::NullStorage;
 
 use crate::WORLD_WIDTH;
 use shred::{Fetch, FetchMut, ResourceId, SystemData, World};
+use std::any::Any;
 use std::ops::{Deref, DerefMut};
 
-pub fn cell_to_id(x: u32, y: u32) -> u32 {
+fn cell_to_id(x: u32, y: u32) -> u32 {
     x + y * WORLD_WIDTH
 }
-pub fn id_to_cell(id: u32) -> (u32, u32) {
+fn id_to_cell(id: u32) -> (u32, u32) {
     (id % WORLD_WIDTH, id / WORLD_WIDTH)
 }
 
-use std::any::Any;
+pub trait CellPos {
+    fn index(&self) -> u32;
+}
+
+impl CellPos for u32 {
+    fn index(&self) -> u32 {
+        *self
+    }
+}
+
+impl CellPos for (u32, u32) {
+    fn index(&self) -> u32 {
+        cell_to_id(self.0, self.1)
+    }
+}
 
 pub trait CellComponent: Any + Sized + Default + Copy + Clone {
     type Storage: InnerCellStorage<Self> + Send + Sync;
