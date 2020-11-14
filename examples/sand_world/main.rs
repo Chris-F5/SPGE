@@ -1,8 +1,7 @@
 mod cell_components;
-mod sand_system;
-mod water_system;
+mod powder_system;
 
-pub use cell_components::{CellColor, Sand, Solid, Water, WriteCells};
+pub use cell_components::{CellColor, Powder, Solid, WriteCells};
 
 use ggez::{
     event::{self, EventHandler, MouseButton},
@@ -22,20 +21,18 @@ const CELL_SIZE: u32 = 5;
 fn main() {
     // INIT world
     let mut world = World::empty();
-
-    let cell_color: CellStorage<CellColor> = Default::default();
-    let sand: CellStorage<Sand> = Default::default();
-    let solid: CellStorage<Solid> = Default::default();
-    let water: CellStorage<Water> = Default::default();
-
-    world.insert(cell_color);
-    world.insert(sand);
-    world.insert(solid);
-    world.insert(water);
+    world
+        .entry::<CellStorage<CellColor>>()
+        .or_insert_with(|| Default::default());
+    world
+        .entry::<CellStorage<Powder>>()
+        .or_insert_with(|| Default::default());
+    world
+        .entry::<CellStorage<Solid>>()
+        .or_insert_with(|| Default::default());
 
     let update_dispatcher: shred::Dispatcher<'static, 'static> = DispatcherBuilder::new()
-        .with(sand_system::SandSystem, "sand", &[])
-        .with(water_system::WaterSystem, "water", &[])
+        .with(powder_system::PowderSystem, "powder", &[])
         .build();
 
     // Make window and run event loop
@@ -96,26 +93,11 @@ impl<'a> Game<'a> {
                 b: 27,
                 a: 255,
             };
-            let mut colors = WriteCellStorage::<CellColor>::fetch(&self.world);
-            *colors.get_mut(pos) = sand_col;
             solids.insert(pos);
-            let mut sands = WriteCellStorage::<Sand>::fetch(&self.world);
-            sands.insert(pos);
-        }
-    }
-    pub fn insert_water(&self, pos: &dyn CellPos) {
-        let solids = ReadCellStorage::<Solid>::fetch(&self.world);
-        if !solids.contains(pos) {
-            let col = CellColor {
-                r: 52,
-                g: 171,
-                b: 235,
-                a: 255,
-            };
-            let mut colors = WriteCellStorage::<CellColor>::fetch(&self.world);
-            *colors.get_mut(pos) = col;
-            let mut waters = WriteCellStorage::<Water>::fetch(&self.world);
-            waters.insert(pos);
+            let mut color = WriteCellStorage::<CellColor>::fetch(&self.world);
+            *color.get_mut(pos) = sand_col;
+            let mut powder = WriteCellStorage::<Powder>::fetch(&self.world);
+            powder.insert(pos, Default::default());
         }
     }
     pub fn insert_wall(&self, pos: &dyn CellPos) {
@@ -156,7 +138,7 @@ impl<'a> Game<'a> {
 
         let x = x.floor() as u32 / CELL_SIZE;
         let y = y.floor() as u32 / CELL_SIZE;
-        self.insert_water(&(x, y));
+        self.insert_wall(&(x, y));
     }
 }
 
@@ -164,8 +146,7 @@ impl<'a> EventHandler for Game<'a> {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
         if self.left_mouse_down {
             self.left_mouse_down_on_pixel(self.mouse_x, self.mouse_y)
-        }
-        if self.right_mouse_down {
+        } else if self.right_mouse_down {
             self.right_mouse_down_on_pixel(self.mouse_x, self.mouse_y)
         }
         self.update_dispatcher.dispatch(&mut self.world);

@@ -1,12 +1,13 @@
 use shred::{ResourceId, SystemData, World};
-use spge::cell_storage::{ArrayStorage, CellComponent, CellPos, NullStorage, WriteCellStorage};
+use spge::cell_storage::{
+    ArrayStorage, CellComponent, CellPos, MaskedArrayStorage, NullStorage, WriteCellStorage,
+};
 
 #[derive(SystemData)]
 pub struct WriteCells<'a> {
     pub color: WriteCellStorage<'a, CellColor>,
-    pub sand: WriteCellStorage<'a, Sand>,
+    pub powder: WriteCellStorage<'a, Powder>,
     pub solid: WriteCellStorage<'a, Solid>,
-    pub water: WriteCellStorage<'a, Water>,
 }
 
 impl<'a> WriteCells<'a> {
@@ -14,9 +15,8 @@ impl<'a> WriteCells<'a> {
         let from_pos = &from_pos.index();
         let to_pos = &to_pos.index();
         self.color.move_cell(from_pos, to_pos);
-        self.sand.move_cell(from_pos, to_pos);
+        self.powder.move_cell(from_pos, to_pos);
         self.solid.move_cell(from_pos, to_pos);
-        self.water.move_cell(from_pos, to_pos);
     }
 }
 
@@ -44,22 +44,27 @@ impl Default for CellColor {
 }
 
 #[derive(Copy, Clone, Default)]
-pub struct Sand;
-
-impl CellComponent for Sand {
-    type Storage = NullStorage<Self>;
-}
-
-#[derive(Copy, Clone, Default)]
 pub struct Solid;
 
 impl CellComponent for Solid {
     type Storage = NullStorage<Self>;
 }
 
-#[derive(Copy, Clone, Default)]
-pub struct Water;
+#[derive(Copy, Clone)]
+pub struct Powder {
+    pub down_vel: u8,
+    pub sub_cell_y_pos: u8,
+}
 
-impl CellComponent for Water {
-    type Storage = NullStorage<Self>;
+impl Default for Powder {
+    fn default() -> Powder {
+        Powder {
+            down_vel: 0,
+            sub_cell_y_pos: 8,
+        }
+    }
+}
+
+impl CellComponent for Powder {
+    type Storage = MaskedArrayStorage<Self>;
 }

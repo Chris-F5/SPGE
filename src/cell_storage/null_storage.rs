@@ -24,7 +24,7 @@ where
     pub fn insert(&mut self, pos: &dyn CellPos) {
         self.mask.insert(pos);
     }
-    pub fn get_mask(&self) -> &CellMask {
+    pub fn mask(&self) -> &CellMask {
         &self.mask
     }
     pub fn contains(&self, pos: &dyn CellPos) -> bool {
