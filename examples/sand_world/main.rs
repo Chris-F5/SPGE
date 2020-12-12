@@ -1,7 +1,7 @@
 mod cell_components;
 mod powder_system;
 
-pub use cell_components::{CellColor, Powder, Solid, WriteCells};
+pub use cell_components::{CellColor, CellType, Matter, Powder, Solid, WriteCells};
 
 use ggez::{
     event::{self, EventHandler, MouseButton},
@@ -12,7 +12,7 @@ use ggez::{
 };
 use shred::{DispatcherBuilder, SystemData, World};
 use spge::{
-    cell_storage::{CellPos, CellStorage, ReadCellStorage, WriteCellStorage},
+    cell_storage::{CellPos, CellTagStorage, ReadTagStorage, TagStorage, TagStorageCollection},
     WORLD_HEIGHT, WORLD_WIDTH,
 };
 
@@ -22,13 +22,16 @@ fn main() {
     // INIT world
     let mut world = World::empty();
     world
-        .entry::<CellStorage<CellColor>>()
+        .entry::<CellTagStorage<CellType>>()
         .or_insert_with(|| Default::default());
     world
-        .entry::<CellStorage<Powder>>()
+        .entry::<CellTagStorage<CellColor>>()
         .or_insert_with(|| Default::default());
     world
-        .entry::<CellStorage<Solid>>()
+        .entry::<CellTagStorage<Powder>>()
+        .or_insert_with(|| Default::default());
+    world
+        .entry::<CellTagStorage<Solid>>()
         .or_insert_with(|| Default::default());
 
     let update_dispatcher: shred::Dispatcher<'static, 'static> = DispatcherBuilder::new()
@@ -85,32 +88,34 @@ impl<'a> Game<'a> {
         }
     }
     pub fn insert_sand(&self, pos: &dyn CellPos) {
-        let mut solids = WriteCellStorage::<Solid>::fetch(&self.world);
-        if !solids.contains(pos) {
-            let sand_col = CellColor {
-                r: 224,
-                g: 188,
-                b: 27,
-                a: 255,
+        let mut cells = WriteCells::fetch(&self.world);
+        if !cells.solid.mask().contains(pos) {
+            let sand = CellType {
+                color: CellColor {
+                    r: 224,
+                    g: 188,
+                    b: 27,
+                    a: 255,
+                },
+                matter: Matter::Powder,
             };
-            solids.insert(pos);
-            let mut color = WriteCellStorage::<CellColor>::fetch(&self.world);
-            *color.get_mut(pos) = sand_col;
-            let mut powder = WriteCellStorage::<Powder>::fetch(&self.world);
-            powder.insert(pos, Default::default());
+            cells.insert(pos, sand);
         }
     }
     pub fn insert_wall(&self, pos: &dyn CellPos) {
-        let col = CellColor {
-            r: 89,
-            g: 8,
-            b: 12,
-            a: 255,
-        };
-        let mut colors = WriteCellStorage::<CellColor>::fetch(&self.world);
-        *colors.get_mut(pos) = col;
-        let mut solids = WriteCellStorage::<Solid>::fetch(&self.world);
-        solids.insert(pos);
+        let mut cells = WriteCells::fetch(&self.world);
+        if !cells.solid.mask().contains(pos) {
+            let wall = CellType {
+                color: CellColor {
+                    r: 89,
+                    g: 8,
+                    b: 12,
+                    a: 255,
+                },
+                matter: Matter::StaticSolid,
+            };
+            cells.insert(pos, wall);
+        }
     }
     fn left_mouse_down_on_pixel(&self, x: f32, y: f32) {
         if y > (WORLD_HEIGHT * CELL_SIZE) as f32
@@ -196,9 +201,9 @@ impl Renderer {
     }
 
     pub fn render(&mut self, ctx: &mut Context, world: &mut World) {
-        let cell_colors = ReadCellStorage::<CellColor>::fetch(&world);
+        let cell_colors = ReadTagStorage::<CellColor>::fetch(&world);
 
-        let colors = cell_colors.cells;
+        let colors = cell_colors.read_cell_array();
         let mut rgba_colors: [u8; (WORLD_WIDTH * WORLD_HEIGHT * 4) as usize] =
             unsafe { std::mem::MaybeUninit::uninit().assume_init() };
 

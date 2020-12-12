@@ -1,14 +1,13 @@
-mod array_storage;
 mod cell_component_joining;
 mod cell_mask;
-mod masked_array_storage;
-mod null_storage;
+mod storage;
 
-pub use self::array_storage::ArrayStorage;
 pub use self::cell_component_joining::Join;
 pub use self::cell_mask::CellMask;
-pub use self::masked_array_storage::MaskedArrayStorage;
-pub use self::null_storage::NullStorage;
+pub use self::storage::MaskedArrayStorage;
+pub use self::storage::NullStorage;
+pub use self::storage::StrictArrayStorage;
+pub use self::storage::TagStorage;
 
 use crate::WORLD_WIDTH;
 use shred::{Fetch, FetchMut, ResourceId, SystemData, World};
@@ -38,23 +37,40 @@ impl CellPos for (u32, u32) {
     }
 }
 
-pub trait CellComponent: Any + Sized + Default + Copy + Clone {
-    type Storage: InnerCellStorage<Self> + Send + Sync;
+pub trait CellManager<CellType, Storage>
+where
+    Storage: TagStorageCollection<CellType>,
+{
+    fn get_storage() -> Storage;
 }
 
-pub struct CellStorageAccessor<D> {
+pub trait TagStorageCollection<CellType> {
+    fn move_cell(&mut self, from: &dyn CellPos, to: &dyn CellPos);
+    fn remove(&mut self, pos: &dyn CellPos);
+    fn insert(&mut self, pos: &dyn CellPos, cell: CellType);
+}
+
+pub trait Tag: Any + Sized + Copy + Clone {
+    type Storage: Default + Sized + Send + Sync;
+}
+
+pub trait CellTag<CellType>: Tag {
+    fn make_tag(cell_type: CellType) -> Option<Self>;
+}
+
+pub struct CellTagStorageAccessor<D> {
     pub data: D,
 }
 
-impl<D> CellStorageAccessor<D> {
-    pub fn new(data: D) -> CellStorageAccessor<D> {
-        CellStorageAccessor::<D> { data: data }
+impl<D> CellTagStorageAccessor<D> {
+    pub fn new(data: D) -> CellTagStorageAccessor<D> {
+        CellTagStorageAccessor::<D> { data: data }
     }
 }
-impl<C, D> Deref for CellStorageAccessor<D>
+impl<T, D> Deref for CellTagStorageAccessor<D>
 where
-    C: CellComponent,
-    D: Deref<Target = CellStorage<C>>,
+    T: Tag,
+    D: Deref<Target = CellTagStorage<T>>,
 {
     type Target = D;
     fn deref(&self) -> &D {
@@ -62,72 +78,74 @@ where
     }
 }
 
-impl<C, D> DerefMut for CellStorageAccessor<D>
+impl<T, D> DerefMut for CellTagStorageAccessor<D>
 where
-    C: CellComponent,
-    D: Deref<Target = CellStorage<C>>,
+    T: Tag,
+    D: Deref<Target = CellTagStorage<T>>,
 {
     fn deref_mut(&mut self) -> &mut D {
         &mut self.data
     }
 }
 
-pub struct CellStorage<C>
+pub trait CellType: Any {}
+
+pub struct CellTagStorage<T>
 where
-    C: CellComponent,
+    T: Tag,
 {
-    inner: C::Storage,
+    inner: T::Storage,
 }
 
-impl<C> Default for CellStorage<C>
+impl<T> Default for CellTagStorage<T>
 where
-    C: CellComponent,
+    T: Tag,
 {
     fn default() -> Self {
-        CellStorage::<C> {
+        CellTagStorage::<T> {
             inner: Default::default(),
         }
     }
 }
 
-impl<C> Deref for CellStorage<C>
+impl<T> Deref for CellTagStorage<T>
 where
-    C: CellComponent,
+    T: Tag,
 {
-    type Target = C::Storage;
-    fn deref(&self) -> &C::Storage {
+    type Target = T::Storage;
+    fn deref(&self) -> &T::Storage {
         &self.inner
     }
 }
-impl<C> DerefMut for CellStorage<C>
+impl<T> DerefMut for CellTagStorage<T>
 where
-    C: CellComponent,
+    T: Tag,
 {
-    fn deref_mut(&mut self) -> &mut C::Storage {
+    fn deref_mut(&mut self) -> &mut T::Storage {
         &mut self.inner
     }
 }
 
-pub trait InnerCellStorage<T>: Default + Sized
-where
-    T: CellComponent,
-{
-}
+//pub trait InnerCellStorage<T>: Default + Sized
+//where
+//    T: CellTag,
+//{
+//}
 
-pub type ReadCellStorage<'a, C> = CellStorageAccessor<Fetch<'a, CellStorage<C>>>;
+pub type ReadTagStorage<'a, C> = CellTagStorageAccessor<Fetch<'a, CellTagStorage<C>>>;
 
-impl<'a, C> SystemData<'a> for ReadCellStorage<'a, C>
+impl<'a, T> SystemData<'a> for ReadTagStorage<'a, T>
 where
-    C: CellComponent,
+    T: Tag,
 {
     fn setup(_res: &mut World) {}
 
     fn fetch(res: &'a World) -> Self {
-        CellStorageAccessor::new(res.fetch())
+        CellTagStorageAccessor::new(res.fetch())
     }
 
     fn reads() -> Vec<ResourceId> {
-        vec![ResourceId::new::<CellStorage<C>>()]
+        vec![ResourceId::new::<CellTagStorage<T>>()]
     }
 
     fn writes() -> Vec<ResourceId> {
@@ -135,16 +153,16 @@ where
     }
 }
 
-pub type WriteCellStorage<'a, C> = CellStorageAccessor<FetchMut<'a, CellStorage<C>>>;
+pub type WriteTagStorage<'a, T> = CellTagStorageAccessor<FetchMut<'a, CellTagStorage<T>>>;
 
-impl<'a, C> SystemData<'a> for WriteCellStorage<'a, C>
+impl<'a, T> SystemData<'a> for WriteTagStorage<'a, T>
 where
-    C: CellComponent,
+    T: Tag,
 {
     fn setup(_res: &mut World) {}
 
     fn fetch(res: &'a World) -> Self {
-        CellStorageAccessor::new(res.fetch_mut())
+        CellTagStorageAccessor::new(res.fetch_mut())
     }
 
     fn reads() -> Vec<ResourceId> {
@@ -152,6 +170,6 @@ where
     }
 
     fn writes() -> Vec<ResourceId> {
-        vec![ResourceId::new::<CellStorage<C>>()]
+        vec![ResourceId::new::<CellTagStorage<T>>()]
     }
 }

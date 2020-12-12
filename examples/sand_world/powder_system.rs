@@ -1,6 +1,6 @@
 use crate::WriteCells;
 use shred::System;
-use spge::cell_storage::Join;
+use spge::cell_storage::{Join, TagStorage, TagStorageCollection};
 
 pub struct PowderSystem;
 
@@ -9,7 +9,7 @@ impl<'a> System<'a> for PowderSystem {
     fn run(&mut self, mut cells: Self::SystemData) {
         for (x, y) in cells.powder.mask().join() {
             let this_powder = cells.powder.get_mut_unchecked(&(x, y));
-            if !cells.solid.contains(&(x, y - 1)) {
+            if !cells.solid.mask().contains(&(x, y - 1)) {
                 this_powder.down_vel += 4;
                 let mut cells_to_move = this_powder.down_vel / 64;
                 this_powder.sub_cell_y_pos += this_powder.down_vel % 64;
@@ -21,7 +21,7 @@ impl<'a> System<'a> for PowderSystem {
                 if cells_to_move != 0 {
                     let mut target_y = y;
                     for _i in 0..cells_to_move {
-                        if cells.solid.contains(&(x, target_y - 1)) {
+                        if cells.solid.mask().contains(&(x, target_y - 1)) {
                             this_powder.down_vel = 0;
                             break;
                         } else {
@@ -32,9 +32,9 @@ impl<'a> System<'a> for PowderSystem {
                         cells.move_cell(&(x, y), &(x, target_y));
                     }
                 }
-            } else if !cells.solid.contains(&(x - 1, y - 1)) {
+            } else if !cells.solid.mask().contains(&(x - 1, y - 1)) {
                 cells.move_cell(&(x, y), &(x - 1, y - 1));
-            } else if !cells.solid.contains(&(x + 1, y - 1)) {
+            } else if !cells.solid.mask().contains(&(x + 1, y - 1)) {
                 cells.move_cell(&(x, y), &(x + 1, y - 1));
             }
         }
